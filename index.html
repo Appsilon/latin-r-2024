@@ -722,14 +722,18 @@ Samuel Calderon
 <span id="cb9-6"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="bases-de-datos" class="slide level2">
-<h2>Bases de Datos</h2>
+<section id="bases-de-datos-relacionales" class="slide level2">
+<h2>Bases de Datos relacionales</h2>
 <ul>
 <li><strong>Escalabilidad</strong>: Las bases de datos pueden manejar grandes volúmenes de datos de manera eficiente.</li>
 <li><strong>Consultas Rápidas</strong>: Permiten realizar consultas complejas de manera rápida.</li>
 <li><strong>Persistencia</strong>: Los datos se almacenan de manera persistente, lo que permite su recuperación en cualquier momento.</li>
 </ul>
+</section>
+<section class="slide level2">
+
 <p>Algunos ejemplos notables son SQLite, MySQL, PostgreSQL, DuckDB.</p>
+<p><a href="https://www.freecodecamp.org/learn/relational-database/">freeCodeCamp</a> tiene un buen curso para principiantes.</p>
 </section>
 <section id="ejercicio-3---data" class="slide level2">
 <h2>Ejercicio 3 - Data</h2>
@@ -842,46 +846,439 @@ Samuel Calderon
 </div></aside></section>
 <section id="estrategias-de-caché" class="slide level2">
 <h2>Estrategias de Caché</h2>
-<ol type="1">
-<li><p>bindCache()</p></li>
-<li><p>Niveles de caché:</p>
-<ul>
-<li>Nivel aplicación: <code>cache = "app"</code></li>
-<li>Nivel sesión: <code>cache = "session"</code></li>
-</ul></li>
+<p><code>bindCache()</code> nos permite guardar cómputos al vuelo en base a ciertas <em>keys</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14" data-code-line-numbers="|7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb14-2"><a href=""></a>  filtered <span class="ot">&lt;-</span> <span class="fu">reactive</span>({</span>
+<span id="cb14-3"><a href=""></a>    survey <span class="sc">|&gt;</span> </span>
+<span id="cb14-4"><a href=""></a>      <span class="fu">filter</span>(region <span class="sc">==</span> input<span class="sc">$</span>region) <span class="sc">|&gt;</span> </span>
+<span id="cb14-5"><a href=""></a>      <span class="fu">filter</span>(age <span class="sc">&lt;=</span> input<span class="sc">$</span>age)</span>
+<span id="cb14-6"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb14-7"><a href=""></a>    <span class="fu">bindCache</span>(input<span class="sc">$</span>region, input<span class="sc">$</span>age) <span class="sc">|&gt;</span> </span>
+<span id="cb14-8"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb14-9"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Cuando una combinación vuelva a aparecer, se leerá el valor en lugar de recalcularlo.</p>
+
+<aside><div>
+<p><code>bindEvent()</code> no es obligatorio para usar <code>bindCache()</code>.</p>
+</div></aside></section>
+<section class="slide level2">
+
+<ol start="2" type="1">
+<li>Niveles de caché:</li>
 </ol>
-</section>
-<section id="comunicación-servidor-navegador" class="slide level2">
-<h2>Comunicación servidor / navegador</h2>
 <ul>
-<li>Reducir en tamaño y frecuencia lo que se manda al <em>cliente</em>.</li>
+<li>Nivel aplicación: <code>cache = "app"</code> (default)</li>
+<li>Nivel sesión: <code>cache = "session"</code></li>
+<li>Personalizado: <code>cache object + opciones</code></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href=""></a><span class="fu">bindCache</span>(..., <span class="at">cache =</span> <span class="st">"app"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Por defecto, se usará un máximo de 200 Mb de caché.</p>
+
+<aside><div>
+<p>Potencialmente mucho uso de memoria/storage, para reducir tiempo de procesamiento.</p>
+</div></aside></section>
+<section id="comunicación-servidor---navegador" class="slide level2">
+<h2>Comunicación servidor - navegador</h2>
+<ul>
+<li>Enviar datos desde el servidor hacia el navegador toma tiempo.
+<ul>
+<li>Datos grandes -&gt; mayor tiempo de envío.</li>
+<li>Conexión lenta -&gt; mayor tiempo de envío</li>
+</ul></li>
+<li>Igualmente, si los datos son grandes, al navegador le cuesta más leerlos y mostrarlos al usuario. Puede que la PC del usuario sea una tostadora!</li>
+</ul>
+</section>
+<section class="slide level2">
+
+<ul>
+<li>¿Qué hacer?
+<ul>
+<li>Reducir frecuencia de envíos (<code>bindEvent()</code>)</li>
+<li>Reducir tamaño de envíos</li>
+<li>Mandar lo mismo pero en partes más pequeñas (server-side processing o streaming)</li>
+</ul></li>
+</ul>
+</section>
+<section id="reducir-tamaño-de-envíos" class="slide level2">
+<h2>Reducir tamaño de envíos</h2>
+<p>Es posible delegar ciertos cálculos al navegador. Por ejemplo, renderizar un gráfico con <a href="https://plotly.com/ggplot2/"><code>{plotly}</code></a> en lugar de <code>{ggplot2}</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href=""></a>plotly<span class="sc">::</span><span class="fu">plotlyOutput</span>() <span class="co"># en lugar de plotOutput</span></span>
+<span id="cb16-2"><a href=""></a>plotly<span class="sc">::</span><span class="fu">renderPlotly</span>() <span class="co"># en lugar de renderPlot</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Con ello, se manda la “receta” del gráfico en lugar del gráfico mismo. Al recibir la receta, el navegador se encarga de renderizarla.</p>
+</section>
+<section class="slide level2">
+
+<p>Estas funciones traducen sintaxis de <code>ggplot2</code> a sintaxis de <code>plotly.js</code> de manera bastante eficiente. Tiene soporte para muchos tipos de gráficos.</p>
+
+<img data-src="img/shiny-plotly.png" class="r-stretch"><p>Pero no te confíes, en muchos casos, el código va a necesitar retoques. Especialmente al usar extensiones de <code>ggplot2</code>.</p>
+</section>
+<section class="slide level2">
+
+<p>Otros paquetes similares:</p>
+<ul>
+<li><a href="https://davidgohel.github.io/ggiraph/">ggiraph</a></li>
+<li><a href="https://echarts4r.john-coene.com/">echarts4r</a></li>
+<li><a href="https://jkunst.com/highcharter/">highcharter</a></li>
+<li><a href="https://rstudio.github.io/r2d3/">r2d3</a></li>
+<li><a href="https://appsilon.github.io/shiny.gosling/index.html">shiny.gosling</a> (genomics, by Appsilon)</li>
+</ul>
+</section>
+<section id="server-side-processing" class="slide level2">
+<h2>Server-side processing</h2>
+<p>En el caso de las tablas, el server-side processing permite paginar el resultado y enviar al navegador solo la página que está siendo mostrada en el momento.</p>
+<p>El paquete <code>{DT}</code> es una opción solida.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href=""></a>DT<span class="sc">::</span><span class="fu">DTOutput</span>() <span class="co"># en lugar de tableOutput()</span></span>
+<span id="cb17-2"><a href=""></a>DT<span class="sc">::</span><span class="fu">renderDT</span>() <span class="co"># en lugar de renderTable()</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+<aside><div>
+<p>Si ya usabas <code>{DT}</code>, ¿sabías que hacía esto por defecto?</p>
+</div></aside></section>
+<section class="slide level2">
+
+<p>Otra opcion:</p>
+<ul>
+<li><code>{reactable}</code> en conjunto con <code>{reactable.extras}</code> (by Appsilon).</li>
 </ul>
 </section>
 <section id="ejercicio-4---shiny" class="slide level2">
 <h2>Ejercicio 4 - Shiny</h2>
+<p>Implementa alguna de las optimizaciones mencionadas.</p>
 </section></section>
 <section>
 <section id="optimización---async" class="title-slide slide level1 center">
 <h1>Optimización - Async</h1>
 
 </section>
-<section id="programación-asíncrona" class="slide level2 smaller">
-<h2>Programación Asíncrona</h2>
+<section id="programación-síncrona" class="slide level2">
+<h2>Programación síncrona</h2>
+<div class="columns">
+<div class="column">
 <ul>
-<li>Casos de uso:
+<li>Las tareas se ejecutan secuencialmente</li>
+<li>Es fácil de entender e implementa</li>
+</ul>
+</div><div class="column">
+<p><img data-src="https://m.media-amazon.com/images/I/519J5jAClAL._AC_SL1001_.jpg"></p>
+</div></div>
+<p>Ejemplo: Una cocina con una hornilla. Si empecé a freir pollo, no puedo freir nada hasta terminar de freir el pollo.</p>
+</section>
+<section id="proramación-asíncrona" class="slide level2">
+<h2>Proramación asíncrona</h2>
+<div class="columns">
+<div class="column">
 <ul>
-<li>Operaciones I/O (bases de datos, APIs)</li>
-<li>Cálculos intensivos</li>
+<li>Las tareas pueden iniciar y ejecutarse independientemente</li>
+<li>Mientras se procesa una tarea, otras pueden ser iniciadas o completadas.</li>
+</ul>
+</div><div class="column">
+<p><img data-src="https://m.media-amazon.com/images/I/71CuqWukldL._AC_SL1500_.jpg"></p>
+</div></div>
+<p>Ejemplo: Una cocina con múltiples hornillas. Si empecé a freir pollo en una hornilla, puedo freir otra cosa en una hornilla diferente.</p>
+</section>
+<section class="slide level2">
+
+<p>Hornilla == Proceso en la PC</p>
+<div title="Cuidado">
+<div class="callout callout-warning callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Cuidado</strong></p>
+</div>
+<div class="callout-content">
+<p>A más hornillas, también es más fácil quemar la comida!</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="posibles-complicaciones" class="slide level2">
+<h2>Posibles complicaciones</h2>
+<ul>
+<li>El código se hace más dificil de entender</li>
+<li>Sin adecuado control, pueden sobreescribir sus resultados</li>
+<li>Lógica circular. Proceso A espera a Proceso B, quien espera a Proceso A</li>
+<li>Incrementa la dificultad para hacer debugging porque los errores ocurren en otro lado</li>
+<li>Mayor consumo de energía</li>
+</ul>
+</section>
+<section id="beneficios" class="slide level2">
+<h2>Beneficios</h2>
+<ul>
+<li>Operaciones largas no bloquean a otras operaciones</li>
+<li>Flexibilidad: mi sistema se adapta a retrasos inesperados</li>
+<li>La aplicación se mantiene responsiva, no se “cuelga”</li>
+<li>Uso eficiente de recursos. “Pagué por 8 procesadores y voy a usar 8 procesadores”.</li>
+<li>Escalabilidad a otro nivel</li>
+</ul>
+</section>
+<section id="casos-de-uso" class="slide level2">
+<h2>Casos de uso</h2>
+<ul>
+<li>Operaciones I/O:
+<ul>
+<li>Query a bases de datos</li>
+<li>Solicitudes a APIs</li>
 </ul></li>
-<li>Herramientas:
+<li>Cálculos intensivos</li>
+</ul>
+</section>
+<section id="qué-necesito" class="slide level2">
+<h2>¿Qué necesito?</h2>
 <ul>
-<li>Paquetes {promises} y {future}</li>
+<li>CPU con varios núcleos/hilos.</li>
+<li>Paquetes:
+<ul>
+<li>{promises}</li>
+<li>{future}</li>
 <li>ExtendedTask (Shiny 1.8.1+)</li>
 </ul></li>
 </ul>
+<div title="Nota">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Nota</strong></p>
+</div>
+<div class="callout-content">
+<p>ExtendedTask es un recurso bastante nuevo. También es posible usar solo <code>future()</code> o <code>future_promise()</code> dentro de un reactive para lograr un efecto similar, aunque con menos ventajas.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="setup-inicial" class="slide level2">
+<h2>Setup inicial</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18" data-code-line-numbers="|4-7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href=""></a><span class="fu">library</span>(shiny)</span>
+<span id="cb18-2"><a href=""></a><span class="fu">library</span>(bslib)</span>
+<span id="cb18-3"><a href=""></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb18-4"><a href=""></a><span class="fu">library</span>(future)</span>
+<span id="cb18-5"><a href=""></a><span class="fu">library</span>(promises)</span>
+<span id="cb18-6"><a href=""></a></span>
+<span id="cb18-7"><a href=""></a><span class="fu">plan</span>(multisession)</span>
+<span id="cb18-8"><a href=""></a></span>
+<span id="cb18-9"><a href=""></a>survey <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(<span class="st">"data/survey.parquet"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Esto le dice al proceso que corre la app que los <em>futures</em> creados se resuelvan en sesiones paralelas.</p>
+</section>
+<section id="procedimiento" class="slide level2">
+<h2>Procedimiento</h2>
+<ol type="1">
+<li>Crear un objeto <code>ExtendedTask</code>.</li>
+<li>Hacer bind a un task button</li>
+<li>Invocar la tarea</li>
+<li>Recuperar los resultados</li>
+</ol>
+<p><a href="https://shiny.posit.co/r/articles/improve/nonblocking/" class="uri">https://shiny.posit.co/r/articles/improve/nonblocking/</a></p>
+</section>
+<section id="punto-de-partida---ui" class="slide level2">
+<h2>Punto de partida - UI</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19" data-code-line-numbers="|5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href=""></a>ui <span class="ot">&lt;-</span> <span class="fu">page_sidebar</span>(</span>
+<span id="cb19-2"><a href=""></a>  <span class="at">sidebar =</span> <span class="fu">sidebar</span>(</span>
+<span id="cb19-3"><a href=""></a>    <span class="fu">selectInput</span>(<span class="at">inputId =</span> <span class="st">"region"</span>, ...),</span>
+<span id="cb19-4"><a href=""></a>    <span class="fu">sliderInput</span>(<span class="at">inputId =</span> <span class="st">"age"</span>, ...),</span>
+<span id="cb19-5"><a href=""></a>    <span class="fu">actionButton</span>(<span class="at">inputId =</span> <span class="st">"compute"</span>, <span class="at">label =</span> <span class="st">"Calcular"</span>)</span>
+<span id="cb19-6"><a href=""></a>  ),</span>
+<span id="cb19-7"><a href=""></a>  ...</span>
+<span id="cb19-8"><a href=""></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="modificaciones---ui" class="slide level2">
+<h2>Modificaciones - UI</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20" data-code-line-numbers="5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href=""></a>ui <span class="ot">&lt;-</span> <span class="fu">page_sidebar</span>(</span>
+<span id="cb20-2"><a href=""></a>  <span class="at">sidebar =</span> <span class="fu">sidebar</span>(</span>
+<span id="cb20-3"><a href=""></a>    <span class="fu">selectInput</span>(<span class="at">inputId =</span> <span class="st">"region"</span>, ...),</span>
+<span id="cb20-4"><a href=""></a>    <span class="fu">sliderInput</span>(<span class="at">inputId =</span> <span class="st">"age"</span>, ...),</span>
+<span id="cb20-5"><a href=""></a>    <span class="fu">input_task_button</span>(<span class="at">id =</span> <span class="st">"compute"</span>, <span class="at">label =</span> <span class="st">"Calcular"</span>)</span>
+<span id="cb20-6"><a href=""></a>  ),</span>
+<span id="cb20-7"><a href=""></a>  ...</span>
+<span id="cb20-8"><a href=""></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Cambiamos el <code>actionButton()</code> por <code>bslib::input_task_button()</code>. Este botón tendrá un comportamiento especial.</p>
+</section>
+<section id="punto-de-partida---server" class="slide level2">
+<h2>Punto de partida - Server</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21" data-code-line-numbers="|3-5|8|7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb21-2"><a href=""></a>  filtered <span class="ot">&lt;-</span> <span class="fu">reactive</span>({</span>
+<span id="cb21-3"><a href=""></a>    survey <span class="sc">|&gt;</span> </span>
+<span id="cb21-4"><a href=""></a>        <span class="fu">filter</span>(region <span class="sc">==</span> input<span class="sc">$</span>region) <span class="sc">|&gt;</span> </span>
+<span id="cb21-5"><a href=""></a>        <span class="fu">filter</span>(age <span class="sc">&lt;=</span> input<span class="sc">$</span>age)</span>
+<span id="cb21-6"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb21-7"><a href=""></a>    <span class="fu">bindCache</span>(input<span class="sc">$</span>region, input<span class="sc">$</span>age) <span class="sc">|&gt;</span> </span>
+<span id="cb21-8"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb21-9"><a href=""></a>  </span>
+<span id="cb21-10"><a href=""></a>  output<span class="sc">$</span>table <span class="ot">&lt;-</span> DT<span class="sc">::</span><span class="fu">renderDT</span>(<span class="fu">filtered</span>())</span>
+<span id="cb21-11"><a href=""></a>  ...</span>
+<span id="cb21-12"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="modificaciones---server" class="slide level2">
+<h2>Modificaciones - Server</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb22-2"><a href=""></a>  filter_task <span class="ot">&lt;-</span> ExtendedTask<span class="sc">$</span><span class="fu">new</span>(<span class="cf">function</span>(p_survey, p_region, p_age) {</span>
+<span id="cb22-3"><a href=""></a>    <span class="fu">future_promise</span>({</span>
+<span id="cb22-4"><a href=""></a>      p_survey <span class="sc">|&gt;</span> </span>
+<span id="cb22-5"><a href=""></a>        dplyr<span class="sc">::</span><span class="fu">filter</span>(region <span class="sc">==</span> p_region) <span class="sc">|&gt;</span> </span>
+<span id="cb22-6"><a href=""></a>        dplyr<span class="sc">::</span><span class="fu">filter</span>(age <span class="sc">&lt;=</span> p_age)</span>
+<span id="cb22-7"><a href=""></a>    })</span>
+<span id="cb22-8"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb22-9"><a href=""></a>    <span class="fu">bind_task_button</span>(<span class="st">"compute"</span>)</span>
+<span id="cb22-10"><a href=""></a>  </span>
+<span id="cb22-11"><a href=""></a>  <span class="fu">observe</span>(filter_task<span class="sc">$</span><span class="fu">invoke</span>(survey, input<span class="sc">$</span>region, input<span class="sc">$</span>age)) <span class="sc">|&gt;</span> </span>
+<span id="cb22-12"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb22-13"><a href=""></a>  </span>
+<span id="cb22-14"><a href=""></a>  filtered <span class="ot">&lt;-</span> <span class="fu">reactive</span>(filter_task<span class="sc">$</span><span class="fu">result</span>())</span>
+<span id="cb22-15"><a href=""></a>  </span>
+<span id="cb22-16"><a href=""></a>  output<span class="sc">$</span>table <span class="ot">&lt;-</span> DT<span class="sc">::</span><span class="fu">renderDT</span>(<span class="fu">filtered</span>())</span>
+<span id="cb22-17"><a href=""></a>  ...</span>
+<span id="cb22-18"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="modificaciones---server-1" class="slide level2">
+<h2>Modificaciones - Server</h2>
+<p>Paso 1: Se creó un <code>ExtendedTask</code> que envuelve a una función.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23" data-code-line-numbers="|2|4-6|3,7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb23-2"><a href=""></a>  filter_task <span class="ot">&lt;-</span> ExtendedTask<span class="sc">$</span><span class="fu">new</span>(<span class="cf">function</span>(p_survey, p_region, p_age) {</span>
+<span id="cb23-3"><a href=""></a>    <span class="fu">future_promise</span>({</span>
+<span id="cb23-4"><a href=""></a>      p_survey <span class="sc">|&gt;</span> </span>
+<span id="cb23-5"><a href=""></a>        dplyr<span class="sc">::</span><span class="fu">filter</span>(region <span class="sc">==</span> p_region) <span class="sc">|&gt;</span> </span>
+<span id="cb23-6"><a href=""></a>        dplyr<span class="sc">::</span><span class="fu">filter</span>(age <span class="sc">&lt;=</span> p_age)</span>
+<span id="cb23-7"><a href=""></a>    })</span>
+<span id="cb23-8"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb23-9"><a href=""></a>    <span class="fu">bind_task_button</span>(<span class="st">"compute"</span>)</span>
+<span id="cb23-10"><a href=""></a>  </span>
+<span id="cb23-11"><a href=""></a>  ...</span>
+<span id="cb23-12"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Dentro de la función, tenemos la lógica de nuestro cálculo envuelta en un <code>future_promise()</code>. La función asume una sesión en blanco.</p>
+</section>
+<section id="modificaciones---server-2" class="slide level2">
+<h2>Modificaciones - Server</h2>
+<p>Paso 2: Se hizo bind a un task button</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24" data-code-line-numbers="|5,8"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb24-2"><a href=""></a>  filter_task <span class="ot">&lt;-</span> ExtendedTask<span class="sc">$</span><span class="fu">new</span>(<span class="cf">function</span>(...) {</span>
+<span id="cb24-3"><a href=""></a>    ...</span>
+<span id="cb24-4"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb24-5"><a href=""></a>    <span class="fu">bind_task_button</span>(<span class="st">"compute"</span>)</span>
+<span id="cb24-6"><a href=""></a>  </span>
+<span id="cb24-7"><a href=""></a>  <span class="fu">observe</span>(...) <span class="sc">|&gt;</span> </span>
+<span id="cb24-8"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb24-9"><a href=""></a></span>
+<span id="cb24-10"><a href=""></a>  ...</span>
+<span id="cb24-11"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div title="Nota">
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Nota</strong></p>
+</div>
+<div class="callout-content">
+<p><code>bind_task_button()</code> requiere el mismo id que <code>input_task_button()</code>. <code>bindEvent()</code> acepta cualquier reactive.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="modificaciones---server-3" class="slide level2">
+<h2>Modificaciones - Server</h2>
+<p>Paso 3: Invocar la tarea con <code>ExtendedTask$invoke()</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25" data-code-line-numbers="|2,7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb25-2"><a href=""></a>  filter_task <span class="ot">&lt;-</span> ExtendedTask<span class="sc">$</span><span class="fu">new</span>(<span class="cf">function</span>(p_survey, p_region, p_age) {</span>
+<span id="cb25-3"><a href=""></a>    ...</span>
+<span id="cb25-4"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb25-5"><a href=""></a>    <span class="fu">bind_task_button</span>(<span class="st">"compute"</span>)</span>
+<span id="cb25-6"><a href=""></a>  </span>
+<span id="cb25-7"><a href=""></a>  <span class="fu">observe</span>(filter_task<span class="sc">$</span><span class="fu">invoke</span>(survey, input<span class="sc">$</span>region, input<span class="sc">$</span>age)) <span class="sc">|&gt;</span> </span>
+<span id="cb25-8"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-9"><a href=""></a>  </span>
+<span id="cb25-10"><a href=""></a>  filtered <span class="ot">&lt;-</span> <span class="fu">reactive</span>(filter_task<span class="sc">$</span><span class="fu">result</span>())</span>
+<span id="cb25-11"><a href=""></a>  </span>
+<span id="cb25-12"><a href=""></a>  output<span class="sc">$</span>table <span class="ot">&lt;-</span> DT<span class="sc">::</span><span class="fu">renderDT</span>(<span class="fu">filtered</span>())</span>
+<span id="cb25-13"><a href=""></a>  ...</span>
+<span id="cb25-14"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Se le provee la data necesaria para trabajar. Tomar en cuenta que <code>invoke()</code> no tiene valor de retorno (es un side-effect).</p>
+</section>
+<section id="modificaciones---server-4" class="slide level2">
+<h2>Modificaciones - Server</h2>
+<p>Paso 4: Recuperar los resultados con <code>ExtendedTask$result()</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26" data-code-line-numbers="|10|12"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb26-2"><a href=""></a>  filter_task <span class="ot">&lt;-</span> ExtendedTask<span class="sc">$</span><span class="fu">new</span>(<span class="cf">function</span>(...) {</span>
+<span id="cb26-3"><a href=""></a>    ...</span>
+<span id="cb26-4"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb26-5"><a href=""></a>    <span class="fu">bind_task_button</span>(<span class="st">"compute"</span>)</span>
+<span id="cb26-6"><a href=""></a>  </span>
+<span id="cb26-7"><a href=""></a>  <span class="fu">observe</span>(filter_task<span class="sc">$</span><span class="fu">invoke</span>(...)) <span class="sc">|&gt;</span> </span>
+<span id="cb26-8"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-9"><a href=""></a>  </span>
+<span id="cb26-10"><a href=""></a>  filtered <span class="ot">&lt;-</span> <span class="fu">reactive</span>(filter_task<span class="sc">$</span><span class="fu">result</span>())</span>
+<span id="cb26-11"><a href=""></a>  </span>
+<span id="cb26-12"><a href=""></a>  output<span class="sc">$</span>table <span class="ot">&lt;-</span> DT<span class="sc">::</span><span class="fu">renderDT</span>(<span class="fu">filtered</span>())</span>
+<span id="cb26-13"><a href=""></a>  ...</span>
+<span id="cb26-14"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><code>result()</code> se comporta como cualquier reactive.</p>
+</section>
+<section id="modificaciones---server-5" class="slide level2">
+<h2>Modificaciones - Server</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href=""></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb27-2"><a href=""></a>  filter_task <span class="ot">&lt;-</span> ExtendedTask<span class="sc">$</span><span class="fu">new</span>(<span class="cf">function</span>(p_survey, p_region, p_age) {</span>
+<span id="cb27-3"><a href=""></a>    <span class="fu">future_promise</span>({</span>
+<span id="cb27-4"><a href=""></a>      p_survey <span class="sc">|&gt;</span> </span>
+<span id="cb27-5"><a href=""></a>        dplyr<span class="sc">::</span><span class="fu">filter</span>(region <span class="sc">==</span> p_region) <span class="sc">|&gt;</span> </span>
+<span id="cb27-6"><a href=""></a>        dplyr<span class="sc">::</span><span class="fu">filter</span>(age <span class="sc">&lt;=</span> p_age)</span>
+<span id="cb27-7"><a href=""></a>    })</span>
+<span id="cb27-8"><a href=""></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb27-9"><a href=""></a>    <span class="fu">bind_task_button</span>(<span class="st">"compute"</span>)</span>
+<span id="cb27-10"><a href=""></a>  </span>
+<span id="cb27-11"><a href=""></a>  <span class="fu">observe</span>(filter_task<span class="sc">$</span><span class="fu">invoke</span>(survey, input<span class="sc">$</span>region, input<span class="sc">$</span>age)) <span class="sc">|&gt;</span> </span>
+<span id="cb27-12"><a href=""></a>    <span class="fu">bindEvent</span>(input<span class="sc">$</span>compute, <span class="at">ignoreNULL =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb27-13"><a href=""></a>  </span>
+<span id="cb27-14"><a href=""></a>  filtered <span class="ot">&lt;-</span> <span class="fu">reactive</span>(filter_task<span class="sc">$</span><span class="fu">result</span>())</span>
+<span id="cb27-15"><a href=""></a>  </span>
+<span id="cb27-16"><a href=""></a>  output<span class="sc">$</span>table <span class="ot">&lt;-</span> DT<span class="sc">::</span><span class="fu">renderDT</span>(<span class="fu">filtered</span>())</span>
+<span id="cb27-17"><a href=""></a>  ...</span>
+<span id="cb27-18"><a href=""></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>¡Perdimos el cache! <code>ExtendedTask()</code> no es 100% compatible con las estrategias de caching vistas.</p>
 </section>
 <section id="ejercicio-5---async" class="slide level2">
 <h2>Ejercicio 5 - Async</h2>
+</section></section>
+<section>
+<section id="temas-avanzados" class="title-slide slide level1 center">
+<h1>Temas avanzados</h1>
+
+</section>
+<section id="dónde-encuentro-más-información" class="slide level2">
+<h2>¿Dónde encuentro más información?</h2>
 </section></section>
 <section id="preguntas" class="title-slide slide level1 center">
 <h1>Preguntas</h1>
