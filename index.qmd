@@ -205,6 +205,8 @@ Para una revisión más exhaustiva del uso de `{profvis}`, puedes consultar la d
 
 ## Ejercicio 2 - Profiling
 
+Ejecuta el profiling del archivo "app.R".
+
 - Interpreta los resultados
   - ¿Cuáles son los puntos más críticos?
   
